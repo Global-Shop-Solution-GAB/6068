@@ -1,0 +1,333 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.frmSetup..Create
+Gui.frmSetup..Size(6300,5625)
+Gui.frmSetup..MinX(0)
+Gui.frmSetup..MinY(0)
+Gui.frmSetup..Position(0,0)
+Gui.frmSetup..BackColor(-2147483633)
+Gui.frmSetup..MousePointer(0)
+Gui.frmSetup..Event(UnLoad,frmSetup_UnLoad)
+Gui.frmSetup..Caption("WC/Employee Setup")
+Gui.frmSetup.GsGCSetup.Create(GsGridControl)
+Gui.frmSetup.GsGCSetup.Size(6195,4920)
+Gui.frmSetup.GsGCSetup.Position(0,15)
+Gui.frmSetup.GsGCSetup.Event(RowCellClick,GsGCSetup_RowCellClick)
+Gui.frmSetup.cmdSave.Create(Button)
+Gui.frmSetup.cmdSave.Size(855,375)
+Gui.frmSetup.cmdSave.Position(5340,4950)
+Gui.frmSetup.cmdSave.Caption("Save")
+Gui.frmSetup.cmdSave.Event(Click,cmdSave_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+	'TJS August 2020
+	'Customer: Internal
+	'Modification to 6051 (6051 a mod to 4788) to remove customer-specific requirements.
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sIcon.Declare
+
+	F.Intrinsic.String.Build("{0}\gss2.ico",V.Caller.GasDir,v.Local.sIcon)		
+	Gui.frmSetup..Icon(v.Local.sIcon)
+	
+	F.Intrinsic.Control.CallSub(CheckTable)
+	F.Intrinsic.Control.CallSub(SetAnchors)
+	F.Intrinsic.Control.CallSub(SetContextMenus)
+	F.Intrinsic.Control.CallSub(LoadSetup)
+	
+	Gui.frmSetup..Show
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.frmSetup_UnLoad.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.End
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.frmSetup_UnLoad.End
+
+Program.Sub.CheckTable.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	V.Local.bExists.Declare
+	
+	'6068 - For customers that already have employees setup, I have modified this portion to pull in the employee data from the 4788 table.
+	
+	F.ODBC.Connection!con.OpenCompanyConnection(300)
+	
+	F.ODBC.Connection!con.TableExists("GCG_6068_WC_EMPL",V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists,=,False)
+		F.ODBC.Connection!con.Execute("CREATE TABLE GCG_6068_WC_EMPL(WID IDENTITY,WORKCENTER CHAR(4),EMPLOYEE CHAR(5),PRIMARY KEY(WID));")
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!con.TableExists("GAB_4788_WC_EMPL",V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists,=,True)
+		F.Data.DataTable.CreateFromSQL("dt6068","con","Select * From GCG_6068_WC_EMPL;")
+		F.Intrinsic.Control.If(V.DataTable.dt6068.RowCount,=,0)
+			F.Data.DataTable.CreateFromSQL("dt4788","con","Select * From GAB_4788_WC_EMPL;")
+			F.Intrinsic.Control.If(V.DataTable.dt4788.RowCount,<>,0)
+				F.Data.DataTable.SaveToDB("dt4788","con","GCG_6068_WC_EMPL","WID",256)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dt6068.Exists)
+		F.Data.DataTable.Close("dt6068")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.dt4788.Exists)
+		F.Data.DataTable.Close("dt4788")
+	F.Intrinsic.Control.EndIf
+
+	F.ODBC.Connection!con.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.CheckTable.End
+
+Program.Sub.SetAnchors.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	Gui.frmSetup.GsGCSetup.Anchor(15)
+	Gui.frmSetup.cmdSave.Anchor(10)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.SetAnchors.End
+
+Program.Sub.LoadSetup.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.If(V.DataTable.dtSetup.Exists)
+		F.Data.DataTable.Close("dtSetup")
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!con.OpenCompanyConnection(300)
+	
+	F.Data.DataTable.CreateFromSQL("dtSetup","con","Select * From GCG_6068_WC_EMPL;",True)
+	F.Data.DataTable.AddColumn("dtSetup","WC_Name",String)
+	F.Data.DataTable.AddColumn("dtSetup","WC_B",String)
+	F.Data.DataTable.AddColumn("dtSetup","Empl_Name",String)
+	F.Data.DataTable.AddColumn("dtSetup","Empl_B",String)
+	
+	F.Data.Dictionary.CreateFromSQL("dWC","con","Select Machine,RTrim(WC_Name) As WC_Name From Workcenters;")
+	F.Data.Dictionary.SetDefaultReturn("dWC","")
+	F.Data.DataTable.FillFromDictionary("dtSetup","dWC","Workcenter","WC_Name")
+	F.Data.Dictionary.Close("dWC")
+	
+	F.Data.Dictionary.CreateFromSQL("dEmpl","con","Select Employee,RTrim(Name) As Name From Employee_Mstr; From Workcenters;")
+	F.Data.Dictionary.SetDefaultReturn("dEmpl","")
+	F.Data.DataTable.FillFromDictionary("dtSetup","dEmpl","Employee","Empl_Name")
+	F.Data.Dictionary.Close("dEmpl")
+	
+	Gui.frmSetup.GsGCSetup.AddGridviewFromDatatable("gvSetup","dtSetup")
+	Gui.frmSetup.GsGCSetup.SuspendLayout()
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","MultiSelect",True)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","AllowSort",True)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","AllowFilter",True)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","Editable",False)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","ReadOnly",True)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","ShowDetailTabs",False)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","ShowGroupPanel",False)
+	Gui.frmSetup.GsGCSetup.SetGridviewProperty("gvSetup","EnableAppearanceOddRow",True)
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WID","Visible",False)
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_B","ShowCaption",False)
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_B","ShowCaption",False)
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_B","Icon","BROWSE")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_B","Icon","BROWSE")
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Workcenter","VisibleIndex","0")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_Name","VisibleIndex","1")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_B","VisibleIndex","2")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Employee","VisibleIndex","3")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_Name","VisibleIndex","4")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_B","VisibleIndex","5")
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Workcenter","Caption","Workcenter")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_Name","Caption","Description")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Employee","Caption","Employee")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_Name","Caption","Name")
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Workcenter","MinWidth","80")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_Name","MinWidth","85")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_B","MinWidth","20")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Employee","MinWidth","65")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_Name","MinWidth","85")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_B","MinWidth","30")
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Workcenter","HeaderFontBold",True)
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_Name","HeaderFontBold",True)
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Employee","HeaderFontBold",True)
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_Name","HeaderFontBold",True)
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Workcenter","HeaderHAlignment","Center")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_Name","HeaderHAlignment","Center")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Employee","HeaderHAlignment","Center")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_Name","HeaderHAlignment","Center")
+	
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Workcenter","CellHAlignment","Center")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_Name","CellHAlignment","Center")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Employee","CellHAlignment","Center")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_Name","CellHAlignment","Center")
+	
+	Gui.frmSetup.GsGCSetup.MainView("gvSetup")
+	Gui.frmSetup.GsGCSetup.ResumeLayout()
+	
+	F.ODBC.Connection!con.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry	
+Program.Sub.LoadSetup.End
+
+Program.Sub.GsGCSetup_RowCellClick.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sSql.Declare
+	V.Local.sRet.Declare
+	
+	F.ODBC.Connection!con.OpenCompanyConnection(300)
+	
+	F.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+	F.Intrinsic.Control.SelectCase(V.Args.Column)
+		F.Intrinsic.Control.Case("WC_B")
+			F.Intrinsic.UI.Browser("Workcenter","con","Select Machine,WC_Name From Workcenters Order By Machine;","WC*!*Description","250*!*800",V.Local.sRet)
+			F.Intrinsic.Control.If(V.Local.sRet,<>,"***CANCEL***")
+				F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+				F.Data.DataTable.SetValue("dtSetup",V.Args.RowIndex,"Workcenter",V.Local.sRet(0).Trim,"WC_Name",V.Local.sRet(1).Trim)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Case("Empl_B")
+			F.Intrinsic.UI.Browser("Employee","con","Select Employee,Name From Employee_Mstr Order By Name;","Employee*!*Name","250*!*800",V.Local.sRet)
+			F.Intrinsic.Control.If(V.Local.sRet,<>,"***CANCEL***")
+				F.Intrinsic.String.Split(V.Local.sRet,"*!*",V.Local.sRet)
+				F.Data.DataTable.SetValue("dtSetup",V.Args.RowIndex,"Employee",V.Local.sRet(0).Trim,"Empl_Name",V.Local.sRet(1).Trim)
+			F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndSelect
+	
+	F.ODBC.Connection!con.Close
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGCSetup_RowCellClick.End
+
+Program.Sub.cmdSave_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Data.DataTable.RemoveColumn("dtSetup","WC_Name")
+	F.Data.DataTable.RemoveColumn("dtSetup","WC_B")
+	F.Data.DataTable.RemoveColumn("dtSetup","Empl_Name")
+	F.Data.DataTable.RemoveColumn("dtSetup","Empl_B")
+	
+	F.ODBC.Connection!con.OpenCompanyConnection(300)
+	F.Data.DataTable.SaveToDB("dtSetup","con","GCG_6068_WC_EMPL","WID")
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.CallSub(LoadSetup)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.SetContextMenus.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	Gui.frmSetup..ContextMenuCreate("ctxSetup")
+	Gui.frmSetup.GsGCSetup.ContextMenuAttach("ctxSetup")
+	Gui.frmSetup..ContextMenuAddItem("ctxSetup","Add",0,V.Translation.9602)
+	Gui.frmSetup..ContextMenuAddItem("ctxSetup","Delete",0,V.Translation.157901)
+	Gui.frmSetup..ContextMenuAddItem("ctxSetup","Refresh",0,V.Translation.513800)
+	Gui.frmSetup..ContextMenuSetItemEventHandler("ctxSetup","Add","MenuClickAdd")
+	Gui.frmSetup..ContextMenuSetItemEventHandler("ctxSetup","Delete","MenuClickDelete")
+	Gui.frmSetup..ContextMenuSetItemEventHandler("ctxSetup","Refresh","MenuClickRefresh")
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.SetContextMenus.End
+
+Program.Sub.MenuClickAdd.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Data.DataTable.AddRow("dtSetup","WID",0,"Workcenter","","WC_Name","","Employee","","Empl_Name","")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","WC_B","Icon","BROWSE")
+	Gui.frmSetup.GsGCSetup.SetColumnProperty("gvSetup","Empl_B","Icon","BROWSE")
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.MenuClickAdd.End
+
+Program.Sub.MenuClickDelete.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.iRow.Declare
+	
+	Gui.frmSetup.GsGCSetup.GetSelectedRows("gvSetup",V.Local.iRow)
+	F.Data.DataTable.DeleteRow("dtSetup",V.Local.iRow)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.MenuClickDelete.End
+
+Program.Sub.MenuClickRefresh.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.CallSub(LoadSetup)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.MenuClickRefresh.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$tsmith$}$20210922150356077$}$xqPbj9atw05FglvzeFsZ9cqXP+qvG6tX6i8GXIoPlAgmHK1uV3z7VsB+lkI7ZPcjv86HGhlkTHE=
+Program.Sub.Comments.End
